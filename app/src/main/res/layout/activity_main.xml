@@ -41,4 +41,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Save  Start" />
+
+
+    <Button
+        android:id="@+id/btnTestVoice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tes Kirim Rekaman ke Telegram" />
+
+
+    <Button
+        android:id="@+id/recordButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Rekam 5 detik (.m4a)"
+        android:layout_marginTop="16dp"/>
+
+
 </LinearLayout>

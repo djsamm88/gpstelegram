@@ -16,6 +16,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TelegramHelper {
@@ -109,6 +110,24 @@ public class TelegramHelper {
                 error -> Log.e("TelegramHelper", "checkCommands error: " + error.toString()));
 
         requestQueue.add(request);
+    }
+
+
+
+    public void sendAudio(String token, String chatId, File audioFile) {
+        try {
+            String url = "https://api.telegram.org/bot" + token + "/sendAudio";
+            MultipartUtility multipart = new MultipartUtility(url, "UTF-8");
+
+            multipart.addFormField("chat_id", chatId);
+            multipart.addFilePart("audio", audioFile);
+
+            List<String> response = multipart.finish();
+            Log.d("TelegramHelper", "sendAudio response: " + response.toString());
+
+        } catch (Exception e) {
+            Log.e("TelegramHelper", "Gagal kirim audio: " + e.getMessage(), e);
+        }
     }
 
 
