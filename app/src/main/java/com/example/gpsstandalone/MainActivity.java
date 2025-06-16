@@ -21,9 +21,7 @@ public class MainActivity extends AppCompatActivity {
 
     EditText tokenInput, chatIdInput, uniqueIdInput, intervalInput;
     Button saveButton, btnTestVoice;
-
     Button recordButton;
-
     SharedPreferences preferences;
 
     private static final int PERMISSION_REQUEST_CODE = 1001;
@@ -34,14 +32,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Notifikasi (untuk Android 13+)
+        // Notifikasi (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
             }
         }
 
-        // Audio (untuk Android 6+)
+        // Audio (Android 6+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, AUDIO_PERMISSION_REQUEST_CODE);
@@ -57,10 +55,9 @@ public class MainActivity extends AppCompatActivity {
         btnTestVoice = findViewById(R.id.btnTestVoice);
         recordButton = findViewById(R.id.recordButton);
 
-
         preferences = getSharedPreferences("config", MODE_PRIVATE);
 
-        // Load data yang sudah disimpan
+        // Load data
         tokenInput.setText(preferences.getString("bot_token", ""));
         chatIdInput.setText(preferences.getString("chat_id", ""));
         uniqueIdInput.setText(preferences.getString("unique_id", ""));
@@ -121,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
+        // Tombol manual rekam suara
         recordButton.setOnClickListener(v -> {
             String token = tokenInput.getText().toString().trim();
             String chatId = chatIdInput.getText().toString().trim();
@@ -142,8 +139,7 @@ public class MainActivity extends AppCompatActivity {
             VoiceRecorder.getInstance().startRecording(this, 5, token, chatId);
         });
 
-
-        // Minta permission awal jika belum dapat
+        // Minta permission awal jika belum diberikan
         if (!hasRequiredPermissions()) {
             requestRequiredPermissions();
         }
@@ -174,7 +170,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean hasRequiredPermissions() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED;
+                ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
     private boolean hasAllAudioPermissions() {
@@ -186,7 +183,8 @@ public class MainActivity extends AppCompatActivity {
                 new String[]{
                         Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.ACCESS_COARSE_LOCATION,
-                        Manifest.permission.FOREGROUND_SERVICE
+                        Manifest.permission.FOREGROUND_SERVICE,
+                        Manifest.permission.FOREGROUND_SERVICE_LOCATION
                 },
                 PERMISSION_REQUEST_CODE);
     }
