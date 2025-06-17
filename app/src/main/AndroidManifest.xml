@@ -36,6 +36,10 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".RecordActivity"
+            android:theme="@style/TransparentActivity" />
+
         <receiver android:name=".BootReceiver"
             android:enabled="true"
             android:exported="true">

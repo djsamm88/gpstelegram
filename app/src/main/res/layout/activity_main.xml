@@ -1,61 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp">
+    android:layout_height="match_parent">
 
-    <EditText
-        android:id="@+id/tokenInput"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Bot Token"
-        android:text="7842861133:AAFWeZwFAq3bX4Zh_UAUBuRTTIAJW15uDPo"
-        />
+        android:orientation="vertical"
+        android:padding="24dp">
 
+        <EditText
+            android:id="@+id/tokenInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Bot Token"
+            android:text="7842861133:AAFWeZwFAq3bX4Zh_UAUBuRTTIAJW15uDPo"
+            android:inputType="text" />
 
+        <EditText
+            android:id="@+id/chatIdInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Chat ID"
+            android:text="5031436388"
+            android:inputType="text" />
 
-    <EditText
-        android:id="@+id/chatIdInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Chat ID"
-        android:text="5031436388"
-        />
+        <EditText
+            android:id="@+id/uniqueIdInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Unique ID"
+            android:inputType="text" />
 
-    <EditText
-        android:id="@+id/uniqueIdInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Unique ID" />
+        <EditText
+            android:id="@+id/intervalInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Interval (in seconds)"
+            android:inputType="number" />
 
-    <EditText
-        android:id="@+id/intervalInput"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Interval (in seconds)"
-        android:inputType="number" />
+        <Button
+            android:id="@+id/saveButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="💾 Simpan | Mulai Service"
+            android:layout_marginTop="16dp" />
 
-    <Button
-        android:id="@+id/saveButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Save  Start" />
+        <Button
+            android:id="@+id/btnRequestAllPermissions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="⚙️ Periksa | Atur Semua Izin"
+            android:layout_marginTop="12dp" />
 
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#CCCCCC"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="20dp" />
 
-    <Button
-        android:id="@+id/btnTestVoice"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Tes Kirim Rekaman ke Telegram" />
+        <Button
+            android:id="@+id/btnTestVoice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎤 Tes Kirim Rekaman ke Telegram" />
 
+        <Button
+            android:id="@+id/recordButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🎙️ Rekam Manual 5 Detik (.m4a)"
+            android:layout_marginTop="12dp" />
 
-    <Button
-        android:id="@+id/recordButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Rekam 5 detik (.m4a)"
-        android:layout_marginTop="16dp"/>
-
-
-</LinearLayout>
+    </LinearLayout>
+</ScrollView>

